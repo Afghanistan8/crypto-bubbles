@@ -2,8 +2,8 @@
 
 A live bubble visualization of the top 100 cryptocurrencies, backed by two GenLayer intelligent contracts that fetch real-time price data and generate AI-validated market sentiment analysis — fully on-chain, no oracles.
 
-**Live demo:** [add your Vercel URL here]
-**GitHub:** [add your repo URL here]
+**Live demo:** https://crypto-bubbles-three.vercel.app
+**GitHub:** https://github.com/Afghanistan8/crypto-bubbles
 
 ---
 

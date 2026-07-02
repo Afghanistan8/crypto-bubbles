@@ -4,6 +4,37 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 const COINGECKO_API =
   "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h";
 
+const MARKET_INSIGHTS_ADDRESS = "0x5D3eF2962cDa27099392825F2B0323Baefa7B916";
+
+interface SentimentData {
+  sentiment: "bullish" | "bearish" | "neutral";
+  score: number;
+  hot_coin: string;
+  summary: string;
+}
+
+async function fetchMarketSentiment(): Promise<SentimentData | null> {
+  try {
+    const { createClient } = await import("genlayer-js");
+    const { studionet } = await import("genlayer-js/chains");
+
+    const client = createClient({ chain: studionet });
+
+    const raw = await client.readContract({
+      address: MARKET_INSIGHTS_ADDRESS as `0x${string}`,
+      functionName: "get_analysis",
+      args: [],
+    });
+
+    if (!raw || raw === "{}") return null;
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (!parsed.sentiment) return null;
+    return parsed as SentimentData;
+  } catch {
+    return null;
+  }
+}
+
 function formatPrice(p: number) {
   if (p >= 1000) return `$${(p / 1000).toFixed(1)}K`;
   if (p >= 1) return `$${p.toFixed(2)}`;
@@ -42,12 +73,13 @@ interface Coin {
 
 interface BubblePos { x: number; y: number; r: number; }
 
-function computeLayout(radii: number[], width: number, height: number): BubblePos[] {
+function computeLayout(radii: number[], width: number, height: number, topOffset: number = 0): BubblePos[] {
   if (!radii.length || !width || !height) return [];
-  const cx = width / 2, cy = height / 2;
+  const usableHeight = height - topOffset;
+  const cx = width / 2, cy = topOffset + usableHeight / 2;
   const pos = radii.map((r, i) => {
     const angle = (i / radii.length) * Math.PI * 2;
-    const spread = Math.min(width, height) * 0.35;
+    const spread = Math.min(width, usableHeight) * 0.35;
     return { x: cx + Math.cos(angle) * spread * (0.3 + Math.random() * 0.7), y: cy + Math.sin(angle) * spread * (0.3 + Math.random() * 0.7), r };
   });
   const vel = radii.map(() => ({ vx: 0, vy: 0 }));
@@ -70,7 +102,7 @@ function computeLayout(radii: number[], width: number, height: number): BubblePo
       const pad = pos[i].r + 4;
       if (pos[i].x < pad) { pos[i].x = pad; vel[i].vx = 0; }
       if (pos[i].x > width - pad) { pos[i].x = width - pad; vel[i].vx = 0; }
-      if (pos[i].y < pad) { pos[i].y = pad; vel[i].vy = 0; }
+      if (pos[i].y < topOffset + pad) { pos[i].y = topOffset + pad; vel[i].vy = 0; }
       if (pos[i].y > height - pad) { pos[i].y = height - pad; vel[i].vy = 0; }
     }
   }
@@ -103,12 +135,66 @@ function DetailPanel({ coin, onClose }: { coin: Coin | null; onClose: () => void
   );
 }
 
+function SentimentBanner({ data }: { data: SentimentData | null }) {
+  if (!data) return null;
+
+  const colors =
+    data.sentiment === "bullish"
+      ? { bg: "#00E67615", border: "#00E67644", text: "#00E676" }
+      : data.sentiment === "bearish"
+      ? { bg: "#FF174415", border: "#FF174444", text: "#FF1744" }
+      : { bg: "#7C4DFF15", border: "#7C4DFF44", text: "#B388FF" };
+
+  const arrow = data.sentiment === "bullish" ? "▲" : data.sentiment === "bearish" ? "▼" : "●";
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 100,
+        left: 20,
+        right: 20,
+        zIndex: 10,
+        background: colors.bg,
+        border: `1px solid ${colors.border}`,
+        borderRadius: 10,
+        padding: "8px 16px",
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+        flexWrap: "wrap",
+        backdropFilter: "blur(10px)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ color: colors.text, fontSize: 14, fontWeight: 800 }}>{arrow}</span>
+        <span style={{ color: colors.text, fontSize: 12, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+          {data.sentiment}
+        </span>
+        <span style={{ color: colors.text, fontSize: 11, fontFamily: "'SF Mono', monospace", opacity: 0.8 }}>
+          {data.score > 0 ? "+" : ""}
+          {data.score}
+        </span>
+      </div>
+      <div style={{ width: 1, height: 16, background: `${colors.text}33` }} />
+      <span style={{ fontSize: 12, color: "#aaa", fontFamily: "'Space Grotesk', sans-serif", flex: 1, minWidth: 200 }}>
+        {data.summary}
+      </span>
+      <div style={{ fontSize: 10, color: "#555", fontFamily: "'SF Mono', monospace", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
+        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#7C4DFF", display: "inline-block" }} />
+        AI · GenLayer on-chain
+      </div>
+    </div>
+  );
+}
+
 export default function CryptoBubbles() {
   const [coins, setCoins] = useState<Coin[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState<Coin | null>(null);
   const [showTop20, setShowTop20] = useState(false);
+  const [sentiment, setSentiment] = useState<SentimentData | null>(null);
   const [lastUpdated, setLastUpdated] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState({ w: 800, h: 600 });
@@ -139,6 +225,10 @@ export default function CryptoBubbles() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  useEffect(() => {
+    fetchMarketSentiment().then(setSentiment);
+  }, []);
+
   const filtered = useMemo(() => coins.filter((c) => {
     const ch = c.price_change_percentage_24h || 0;
     if (filter === "gainers") return ch > 0;
@@ -149,11 +239,18 @@ export default function CryptoBubbles() {
 
   const radii = useMemo(() => filtered.map((c, i) => getBubbleRadius(c.price_change_percentage_24h, i)), [filtered]);
 
-  const positions = useMemo(() => computeLayout(radii, dims.w, dims.h), [radii, dims.w, dims.h]);
-
   const topMovers = useMemo(() => [...coins]
     .sort((a, b) => Math.abs(b.price_change_percentage_24h || 0) - Math.abs(a.price_change_percentage_24h || 0))
     .slice(0, 5), [coins]);
+
+  const bubbleTopOffset = useMemo(() => {
+    let offset = 68; // header
+    if (sentiment) offset += 56; // sentiment banner
+    if (topMovers.length > 0) offset += 44; // top movers strip
+    return offset;
+  }, [sentiment, topMovers.length]);
+
+  const positions = useMemo(() => computeLayout(radii, dims.w, dims.h, bubbleTopOffset), [radii, dims.w, dims.h, bubbleTopOffset]);
 
   const top20Coins = useMemo(() => [...coins]
     .filter(c => c.market_cap_rank && c.market_cap_rank <= 20)
@@ -190,8 +287,10 @@ export default function CryptoBubbles() {
         </div>
       </div>
 
+      <SentimentBanner data={sentiment} />
+
       {topMovers.length > 0 && (
-        <div style={{ position: "absolute", top: 68, left: 20, right: 20, display: "flex", gap: 8, zIndex: 10, overflow: "auto", paddingBottom: 4 }}>
+        <div style={{ position: "absolute", top: sentiment ? 144 : 68, left: 20, right: 20, display: "flex", gap: 8, zIndex: 10, overflow: "auto", paddingBottom: 4, transition: "top 0.3s" }}>
           <span style={{ fontSize: 10, color: "#555", fontWeight: 700, fontFamily: "'SF Mono', monospace", whiteSpace: "nowrap", alignSelf: "center" }}>TOP MOVERS</span>
           {topMovers.map((c) => {
             const ch = c.price_change_percentage_24h || 0;

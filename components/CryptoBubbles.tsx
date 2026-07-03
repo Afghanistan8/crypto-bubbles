@@ -109,33 +109,48 @@ function computeLayout(radii: number[], width: number, height: number, topOffset
   return pos;
 }
 
-function DetailPanel({ coin, onClose }: { coin: Coin | null; onClose: () => void }) {
+function DetailPanel({ coin, onClose, isMobile }: { coin: Coin | null; onClose: () => void; isMobile: boolean }) {
   if (!coin) return null;
   const change = coin.price_change_percentage_24h || 0;
   const isGainer = change >= 0;
   const colors = getBubbleColor(change);
   return (
-    <div style={{ position: "absolute", bottom: 16, left: 16, right: 16, background: "rgba(10,10,18,0.95)", backdropFilter: "blur(20px)", borderRadius: 16, border: `1px solid ${colors.bg}44`, padding: "20px 24px", display: "flex", alignItems: "center", gap: 20, zIndex: 20, boxShadow: `0 0 40px ${colors.glow}` }}>
-      <img src={coin.image} alt={coin.name} style={{ width: 48, height: 48, borderRadius: 12 }} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+    <div style={{ position: "absolute", bottom: isMobile ? 8 : 16, left: isMobile ? 8 : 16, right: isMobile ? 8 : 16, background: "rgba(10,10,18,0.95)", backdropFilter: "blur(20px)", borderRadius: 16, border: `1px solid ${colors.bg}44`, padding: isMobile ? "14px 16px" : "20px 24px", display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "center", gap: isMobile ? 10 : 20, zIndex: 20, boxShadow: `0 0 40px ${colors.glow}`, maxHeight: isMobile ? "40vh" : "none", overflowY: isMobile ? "auto" : "visible" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <img src={coin.image} alt={coin.name} style={{ width: isMobile ? 36 : 48, height: isMobile ? 36 : 48, borderRadius: 12, flexShrink: 0 }} onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+        {isMobile && (
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 16, fontWeight: 800, color: "#f0f0f0", fontFamily: "'Space Grotesk', sans-serif" }}>{coin.name}</span>
+            <span style={{ fontSize: 12, color: "#888", fontFamily: "'SF Mono', monospace", fontWeight: 600 }}>{coin.symbol}</span>
+          </div>
+        )}
+        {isMobile && (
+          <button onClick={onClose} style={{ marginLeft: "auto", background: "none", border: "1px solid #333", color: "#888", borderRadius: 8, width: 28, height: 28, cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>×</button>
+        )}
+      </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 20, fontWeight: 800, color: "#f0f0f0", fontFamily: "'Space Grotesk', sans-serif" }}>{coin.name}</span>
-          <span style={{ fontSize: 13, color: "#888", fontFamily: "'SF Mono', monospace", fontWeight: 600 }}>{coin.symbol}</span>
-          <span style={{ fontSize: 11, color: "#555", fontFamily: "'SF Mono', monospace" }}>#{coin.market_cap_rank}</span>
-        </div>
-        <div style={{ display: "flex", gap: 20, marginTop: 8, flexWrap: "wrap" }}>
-          <div><div style={{ fontSize: 11, color: "#666", fontWeight: 600 }}>PRICE</div><div style={{ fontSize: 18, fontWeight: 700, color: "#f0f0f0", fontFamily: "'SF Mono', monospace" }}>{formatPrice(coin.current_price)}</div></div>
-          <div><div style={{ fontSize: 11, color: "#666", fontWeight: 600 }}>24H</div><div style={{ fontSize: 18, fontWeight: 700, color: colors.bg, fontFamily: "'SF Mono', monospace" }}>{isGainer ? "+" : ""}{change.toFixed(2)}%</div></div>
-          <div><div style={{ fontSize: 11, color: "#666", fontWeight: 600 }}>MCAP</div><div style={{ fontSize: 14, fontWeight: 600, color: "#aaa", fontFamily: "'SF Mono', monospace" }}>{formatMcap(coin.market_cap)}</div></div>
-          <div><div style={{ fontSize: 11, color: "#666", fontWeight: 600 }}>VOLUME</div><div style={{ fontSize: 14, fontWeight: 600, color: "#aaa", fontFamily: "'SF Mono', monospace" }}>{formatMcap(coin.total_volume)}</div></div>
+        {!isMobile && (
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 20, fontWeight: 800, color: "#f0f0f0", fontFamily: "'Space Grotesk', sans-serif" }}>{coin.name}</span>
+            <span style={{ fontSize: 13, color: "#888", fontFamily: "'SF Mono', monospace", fontWeight: 600 }}>{coin.symbol}</span>
+            <span style={{ fontSize: 11, color: "#555", fontFamily: "'SF Mono', monospace" }}>#{coin.market_cap_rank}</span>
+          </div>
+        )}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "auto auto auto auto", gap: isMobile ? "8px 16px" : 20, marginTop: isMobile ? 4 : 8 }}>
+          <div><div style={{ fontSize: 11, color: "#666", fontWeight: 600 }}>PRICE</div><div style={{ fontSize: isMobile ? 15 : 18, fontWeight: 700, color: "#f0f0f0", fontFamily: "'SF Mono', monospace" }}>{formatPrice(coin.current_price)}</div></div>
+          <div><div style={{ fontSize: 11, color: "#666", fontWeight: 600 }}>24H</div><div style={{ fontSize: isMobile ? 15 : 18, fontWeight: 700, color: colors.bg, fontFamily: "'SF Mono', monospace" }}>{isGainer ? "+" : ""}{change.toFixed(2)}%</div></div>
+          <div><div style={{ fontSize: 11, color: "#666", fontWeight: 600 }}>MCAP</div><div style={{ fontSize: isMobile ? 13 : 14, fontWeight: 600, color: "#aaa", fontFamily: "'SF Mono', monospace" }}>{formatMcap(coin.market_cap)}</div></div>
+          <div><div style={{ fontSize: 11, color: "#666", fontWeight: 600 }}>VOLUME</div><div style={{ fontSize: isMobile ? 13 : 14, fontWeight: 600, color: "#aaa", fontFamily: "'SF Mono', monospace" }}>{formatMcap(coin.total_volume)}</div></div>
         </div>
       </div>
-      <button onClick={onClose} style={{ background: "none", border: "1px solid #333", color: "#888", borderRadius: 8, width: 32, height: 32, cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+      {!isMobile && (
+        <button onClick={onClose} style={{ background: "none", border: "1px solid #333", color: "#888", borderRadius: 8, width: 32, height: 32, cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>×</button>
+      )}
     </div>
   );
 }
 
-function SentimentBanner({ data }: { data: SentimentData | null }) {
+function SentimentBanner({ data, isMobile, topOffset }: { data: SentimentData | null; isMobile: boolean; topOffset: number }) {
   if (!data) return null;
 
   const colors =
@@ -147,11 +162,43 @@ function SentimentBanner({ data }: { data: SentimentData | null }) {
 
   const arrow = data.sentiment === "bullish" ? "▲" : data.sentiment === "bearish" ? "▼" : "●";
 
+  if (isMobile) {
+    return (
+      <div
+        style={{
+          position: "absolute",
+          top: topOffset,
+          left: 12,
+          right: 12,
+          zIndex: 10,
+          background: colors.bg,
+          border: `1px solid ${colors.border}`,
+          borderRadius: 10,
+          padding: "8px 12px",
+          backdropFilter: "blur(10px)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+          <span style={{ color: colors.text, fontSize: 12, fontWeight: 800 }}>{arrow}</span>
+          <span style={{ color: colors.text, fontSize: 11, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            {data.sentiment}
+          </span>
+          <span style={{ color: colors.text, fontSize: 10, fontFamily: "'SF Mono', monospace", opacity: 0.8 }}>
+            {data.score > 0 ? "+" : ""}{data.score}
+          </span>
+        </div>
+        <div style={{ fontSize: 11, color: "#aaa", fontFamily: "'Space Grotesk', sans-serif", lineHeight: 1.35, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+          {data.summary}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
         position: "absolute",
-        top: 100,
+        top: topOffset,
         left: 20,
         right: 20,
         zIndex: 10,
@@ -198,12 +245,14 @@ export default function CryptoBubbles() {
   const [lastUpdated, setLastUpdated] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState({ w: 800, h: 600 });
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     function measure() {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
         setDims({ w: rect.width, h: rect.height });
+        setIsMobile(rect.width < 640);
       }
     }
     measure();
@@ -237,18 +286,18 @@ export default function CryptoBubbles() {
     return true;
   }), [coins, filter]);
 
-  const radii = useMemo(() => filtered.map((c, i) => getBubbleRadius(c.price_change_percentage_24h, i)), [filtered]);
+  const radii = useMemo(() => filtered.map((c, i) => getBubbleRadius(c.price_change_percentage_24h, i) * (isMobile ? 0.62 : 1)), [filtered, isMobile]);
 
   const topMovers = useMemo(() => [...coins]
     .sort((a, b) => Math.abs(b.price_change_percentage_24h || 0) - Math.abs(a.price_change_percentage_24h || 0))
-    .slice(0, 5), [coins]);
+    .slice(0, isMobile ? 3 : 5), [coins, isMobile]);
 
   const bubbleTopOffset = useMemo(() => {
-    let offset = 68; // header
-    if (sentiment) offset += 56; // sentiment banner
-    if (topMovers.length > 0) offset += 44; // top movers strip
+    let offset = isMobile ? 96 : 68; // header (taller on mobile, wraps to 2 lines)
+    if (sentiment) offset += isMobile ? 76 : 56; // sentiment banner (taller on mobile, summary wraps)
+    if (topMovers.length > 0) offset += isMobile ? 40 : 44; // top movers strip
     return offset;
-  }, [sentiment, topMovers.length]);
+  }, [sentiment, topMovers.length, isMobile]);
 
   const positions = useMemo(() => computeLayout(radii, dims.w, dims.h, bubbleTopOffset), [radii, dims.w, dims.h, bubbleTopOffset]);
 
@@ -267,38 +316,40 @@ export default function CryptoBubbles() {
     <div ref={containerRef} style={{ width: "100%", height: "100vh", background: "radial-gradient(ellipse at 50% 30%, #0d0d1a 0%, #060610 60%, #020208 100%)", position: "relative", overflow: "hidden", fontFamily: "'Space Grotesk', 'Inter', system-ui, sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&display=swap" rel="stylesheet" />
 
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "linear-gradient(180deg, rgba(6,6,14,0.95) 0%, transparent 100%)", zIndex: 10, flexWrap: "wrap", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ fontSize: 22, fontWeight: 900, color: "#f0f0f0", fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "-0.5px" }}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, padding: isMobile ? "10px 12px" : "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "linear-gradient(180deg, rgba(6,6,14,0.95) 0%, transparent 100%)", zIndex: 10, flexWrap: "wrap", gap: isMobile ? 6 : 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12 }}>
+          <div style={{ fontSize: isMobile ? 16 : 22, fontWeight: 900, color: "#f0f0f0", fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "-0.5px" }}>
             <span style={{ color: "#7C4DFF" }}>◉</span> CryptoBubbles
           </div>
-          <div style={{ fontSize: 10, color: "#555", fontFamily: "'SF Mono', monospace", border: "1px solid #222", borderRadius: 6, padding: "3px 8px" }}>GENLAYER</div>
+          {!isMobile && <div style={{ fontSize: 10, color: "#555", fontFamily: "'SF Mono', monospace", border: "1px solid #222", borderRadius: 6, padding: "3px 8px" }}>GENLAYER</div>}
         </div>
-        <div style={{ display: "flex", gap: 4 }}>
+        <div style={{ display: "flex", gap: 4, order: isMobile ? 3 : 0, width: isMobile ? "100%" : "auto", overflowX: isMobile ? "auto" : "visible" }}>
           {filters.map((f) => (
-            <button key={f.key} onClick={() => { if (f.key === "top20") { setShowTop20(!showTop20); } else { setShowTop20(false); setFilter(f.key); } }} style={{ background: (f.key === "top20" ? showTop20 : filter === f.key && !showTop20) ? "#7C4DFF22" : "transparent", border: `1px solid ${(f.key === "top20" ? showTop20 : filter === f.key && !showTop20) ? "#7C4DFF" : "#222"}`, color: (f.key === "top20" ? showTop20 : filter === f.key && !showTop20) ? "#B388FF" : "#666", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'Space Grotesk', sans-serif", transition: "all 0.2s" }}>
-              {f.label}
+            <button key={f.key} onClick={() => { if (f.key === "top20") { setShowTop20(!showTop20); } else { setShowTop20(false); setFilter(f.key); } }} style={{ background: (f.key === "top20" ? showTop20 : filter === f.key && !showTop20) ? "#7C4DFF22" : "transparent", border: `1px solid ${(f.key === "top20" ? showTop20 : filter === f.key && !showTop20) ? "#7C4DFF" : "#222"}`, color: (f.key === "top20" ? showTop20 : filter === f.key && !showTop20) ? "#B388FF" : "#666", borderRadius: 8, padding: isMobile ? "5px 10px" : "6px 14px", fontSize: isMobile ? 11 : 12, fontWeight: 600, cursor: "pointer", fontFamily: "'Space Grotesk', sans-serif", transition: "all 0.2s", whiteSpace: "nowrap", flexShrink: 0 }}>
+              {isMobile ? f.label.replace("All Coins", "All") : f.label}
             </button>
           ))}
         </div>
-        <div style={{ fontSize: 11, color: "#444", fontFamily: "'SF Mono', monospace", display: "flex", gap: 16 }}>
-          <span>{filtered.length} coins</span>
-          {lastUpdated && <span>updated {lastUpdated}</span>}
-        </div>
+        {!isMobile && (
+          <div style={{ fontSize: 11, color: "#444", fontFamily: "'SF Mono', monospace", display: "flex", gap: 16 }}>
+            <span>{filtered.length} coins</span>
+            {lastUpdated && <span>updated {lastUpdated}</span>}
+          </div>
+        )}
       </div>
 
-      <SentimentBanner data={sentiment} />
+      <SentimentBanner data={sentiment} isMobile={isMobile} topOffset={isMobile ? 76 : 100} />
 
       {topMovers.length > 0 && (
-        <div style={{ position: "absolute", top: sentiment ? 144 : 68, left: 20, right: 20, display: "flex", gap: 8, zIndex: 10, overflow: "auto", paddingBottom: 4, transition: "top 0.3s" }}>
-          <span style={{ fontSize: 10, color: "#555", fontWeight: 700, fontFamily: "'SF Mono', monospace", whiteSpace: "nowrap", alignSelf: "center" }}>TOP MOVERS</span>
+        <div style={{ position: "absolute", top: isMobile ? (sentiment ? 172 : 96) : (sentiment ? 144 : 68), left: isMobile ? 12 : 20, right: isMobile ? 12 : 20, display: "flex", gap: 6, zIndex: 10, overflow: "auto", paddingBottom: 4, transition: "top 0.3s" }}>
+          <span style={{ fontSize: 9, color: "#555", fontWeight: 700, fontFamily: "'SF Mono', monospace", whiteSpace: "nowrap", alignSelf: "center" }}>{isMobile ? "MOVERS" : "TOP MOVERS"}</span>
           {topMovers.map((c) => {
             const ch = c.price_change_percentage_24h || 0;
             const col = getBubbleColor(ch);
             return (
-              <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 6, background: `${col.bg}15`, border: `1px solid ${col.bg}33`, borderRadius: 8, padding: "4px 10px", whiteSpace: "nowrap" }}>
-                <span style={{ fontSize: 11, fontWeight: 800, color: col.bg, fontFamily: "'SF Mono', monospace" }}>{c.symbol}</span>
-                <span style={{ fontSize: 11, color: col.bg, fontFamily: "'SF Mono', monospace" }}>{ch >= 0 ? "+" : ""}{ch.toFixed(1)}%</span>
+              <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 6, background: `${col.bg}15`, border: `1px solid ${col.bg}33`, borderRadius: 8, padding: isMobile ? "3px 8px" : "4px 10px", whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: isMobile ? 10 : 11, fontWeight: 800, color: col.bg, fontFamily: "'SF Mono', monospace" }}>{c.symbol}</span>
+                <span style={{ fontSize: isMobile ? 10 : 11, color: col.bg, fontFamily: "'SF Mono', monospace" }}>{ch >= 0 ? "+" : ""}{ch.toFixed(1)}%</span>
               </div>
             );
           })}
@@ -346,11 +397,11 @@ export default function CryptoBubbles() {
         </svg>
       )}
 
-      <DetailPanel coin={selected} onClose={() => setSelected(null)} />
+      <DetailPanel coin={selected} onClose={() => setSelected(null)} isMobile={isMobile} />
 
       {/* Top 20 Panel */}
       {showTop20 && top20Coins.length > 0 && (
-        <div style={{ position: "absolute", top: 0, right: 0, width: 380, height: "100vh", background: "rgba(8,8,18,0.97)", backdropFilter: "blur(20px)", borderLeft: "1px solid #1a1a2e", zIndex: 25, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: 0, right: 0, width: isMobile ? "100%" : 380, height: "100vh", background: "rgba(8,8,18,0.97)", backdropFilter: "blur(20px)", borderLeft: isMobile ? "none" : "1px solid #1a1a2e", zIndex: 25, display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <div style={{ padding: "20px 20px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #1a1a2e" }}>
             <div>
               <div style={{ fontSize: 16, fontWeight: 800, color: "#f0f0f0", fontFamily: "'Space Grotesk', sans-serif" }}>Top 20 by Market Cap</div>
@@ -393,19 +444,22 @@ export default function CryptoBubbles() {
         </div>
       )}
 
-      <button onClick={fetchData} style={{ position: "absolute", bottom: selected ? 110 : 16, left: 16, background: "#7C4DFF15", border: "1px solid #7C4DFF33", color: "#7C4DFF", borderRadius: 8, padding: "6px 14px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "'SF Mono', monospace", transition: "all 0.3s", zIndex: 15 }}>↻ Refresh</button>
+      <button onClick={fetchData} style={{ position: "absolute", bottom: selected ? (isMobile ? 180 : 110) : (isMobile ? 12 : 16), left: isMobile ? 12 : 16, background: "#7C4DFF15", border: "1px solid #7C4DFF33", color: "#7C4DFF", borderRadius: 8, padding: isMobile ? "5px 12px" : "6px 14px", fontSize: isMobile ? 10 : 11, fontWeight: 600, cursor: "pointer", fontFamily: "'SF Mono', monospace", transition: "all 0.3s", zIndex: 15 }}>↻ Refresh</button>
 
-      <div style={{ position: "absolute", bottom: selected ? 110 : 16, right: 16, fontSize: 10, color: "#333", fontFamily: "'SF Mono', monospace", display: "flex", alignItems: "center", gap: 6, transition: "bottom 0.3s" }}>
+      <div style={{ position: "absolute", bottom: selected ? (isMobile ? 180 : 110) : (isMobile ? 12 : 16), right: isMobile ? 12 : 16, fontSize: isMobile ? 9 : 10, color: "#333", fontFamily: "'SF Mono', monospace", display: "flex", alignItems: "center", gap: 6, transition: "bottom 0.3s" }}>
         <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#00E676", display: "inline-block" }} />
-        live · CoinGecko API
+        {isMobile ? "live" : "live · CoinGecko API"}
       </div>
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         ::-webkit-scrollbar { height: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #222; border-radius: 4px; }
+        @media (max-width: 640px) {
+          body { overscroll-behavior: none; }
+        }
       `}</style>
     </div>
   );
